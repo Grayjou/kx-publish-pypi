@@ -1,0 +1,10 @@
+mock_pypi_key = "XXXXXXXXXXXXXXXX" or ignore if present in .pypirc
+mock_pypi_test_key = "XXXXXXXXXXXXXXX" or ignore if present in .pypirc
+
+dont_pack = {
+  "package_folder/tests" #in case tests happen to be there for some reason
+}
+
+TEST = True
+
+TEST_CONFIRM = True
