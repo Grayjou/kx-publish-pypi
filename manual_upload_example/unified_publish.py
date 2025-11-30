@@ -799,8 +799,9 @@ def main() -> int:
         token = get_token(config.target, config)
         if not token:
             print_error(f"No API token found for {target_name}!")
+            env_var = "TESTPYPI_TOKEN" if config.target == "test" else "PYPI_TOKEN"
             print_info("Set token via:")
-            print_info(f"  1. Environment variable: {config.target.upper()}PYPI_TOKEN")
+            print_info(f"  1. Environment variable: {env_var}")
             print_info("  2. System keyring: kx-publish-pypi setup-tokens")
             print_info("  3. Config file: [tokens] section in TOML")
             return 1
