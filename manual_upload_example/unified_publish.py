@@ -359,7 +359,7 @@ def resolve_attribute_version(package_path: Path, attr_path: str) -> Optional[st
     
     Args:
         package_path: Path to the package root
-        attr_path: Attribute path like "package.__version__.__version__"
+        attr_path: Attribute path like "mypackage.__version__" or "mypackage.version"
         
     Returns:
         Version string if found, None otherwise
@@ -480,7 +480,7 @@ def upload_package(
     token: str,
     target: str,
     dry_run: bool = False
-) -> bool:
+) -> Tuple[bool, Optional[str]]:
     """Upload package to PyPI or TestPyPI.
     
     Args:
@@ -490,7 +490,7 @@ def upload_package(
         dry_run: If True, don't actually upload
         
     Returns:
-        True if upload succeeded (or dry-run), False otherwise
+        Tuple of (success: bool, package_name: Optional[str])
     """
     repo_urls = {
         "test": "https://test.pypi.org/legacy/",
@@ -506,23 +506,32 @@ def upload_package(
     
     if not repo_url:
         print_error(f"Unknown target: {target}")
-        return False
+        return False, None
     
     dist_path = package_path / "dist"
     if not dist_path.exists():
         print_error("dist/ directory not found. Run build first.")
-        return False
+        return False, None
     
     artifacts = list(dist_path.glob("*.whl")) + list(dist_path.glob("*.tar.gz"))
     if not artifacts:
         print_error("No package files found in dist/")
-        return False
+        return False, None
+    
+    # Extract package name from the first artifact
+    package_name = None
+    if artifacts:
+        artifact = artifacts[0]
+        name = artifact.stem
+        # For wheels: package_name-version-... .whl
+        # For tar.gz: package_name-version.tar.gz
+        package_name = name.split("-")[0]
     
     if dry_run:
         print_step("🔍", f"DRY RUN: Would upload to {repo_name}")
         for artifact in artifacts:
             print_info(f"  Would upload: {artifact.name}")
-        return True
+        return True, package_name
     
     print_step("📤", f"Uploading to {repo_name}...")
     
@@ -536,7 +545,7 @@ def upload_package(
     except (subprocess.CalledProcessError, FileNotFoundError):
         print_error("The 'twine' package is not installed.")
         print_info("Install with: pip install twine")
-        return False
+        return False, None
     
     try:
         cmd = [
@@ -566,21 +575,22 @@ def upload_package(
                     print_warning("Authentication failed. Check your API token.")
                 else:
                     print(f"Error: {result.stderr}")
-            return False
+            return False, None
         
         print_success(f"Package uploaded to {repo_name}!")
         
-        # Print package URL
-        if target == "test":
-            print_info("View at: https://test.pypi.org/project/YOUR_PACKAGE/")
-        else:
-            print_info("View at: https://pypi.org/project/YOUR_PACKAGE/")
+        # Print package URL with actual package name
+        if package_name:
+            if target == "test":
+                print_info(f"View at: https://test.pypi.org/project/{package_name}/")
+            else:
+                print_info(f"View at: https://pypi.org/project/{package_name}/")
         
-        return True
+        return True, package_name
         
     except Exception as e:
         print_error(f"Upload failed with error: {e}")
-        return False
+        return False, None
 
 
 def parse_args() -> argparse.Namespace:
@@ -823,7 +833,8 @@ def main() -> int:
         print()
     
     # Upload package
-    if not upload_package(package_path, token, config.target, config.dry_run):
+    success, package_name = upload_package(package_path, token, config.target, config.dry_run)
+    if not success:
         return 1
     
     print()
@@ -831,8 +842,8 @@ def main() -> int:
         print_success("Dry run completed successfully!")
     else:
         print_success(f"Successfully published to {target_name}!")
-        if config.target == "test":
-            print_info("Test your package: pip install -i https://test.pypi.org/simple/ YOUR_PACKAGE")
+        if config.target == "test" and package_name:
+            print_info(f"Test your package: pip install -i https://test.pypi.org/simple/ {package_name}")
     
     return 0
 
