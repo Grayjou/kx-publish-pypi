@@ -53,17 +53,18 @@ import shutil
 import subprocess
 import argparse
 from pathlib import Path
-from typing import Optional, Dict, Any, Tuple
-from dataclasses import dataclass
+from typing import Optional, Dict, Any, Tuple, List
+from dataclasses import dataclass, field
 
 # Try to import optional dependencies with fallbacks
+# tomllib is available in Python 3.11+, tomli provides compatibility for earlier versions
 try:
-    import tomllib
+    import tomllib  # Python 3.11+
 except ImportError:
     try:
-        import tomli as tomllib
+        import tomli as tomllib  # Fallback for Python < 3.11
     except ImportError:
-        tomllib = None
+        tomllib = None  # TOML support disabled
 
 try:
     import keyring
@@ -146,16 +147,14 @@ class PublishConfig:
     dry_run: bool = False
     
     # Package settings
-    package_path: Path = Path(".")
-    exclude_patterns: list = None
+    package_path: Path = field(default_factory=lambda: Path("."))
+    exclude_patterns: List[str] = field(default_factory=list)
     
     # Tokens (loaded from various sources)
     test_token: Optional[str] = None
     prod_token: Optional[str] = None
     
     def __post_init__(self):
-        if self.exclude_patterns is None:
-            self.exclude_patterns = []
         if isinstance(self.package_path, str):
             self.package_path = Path(self.package_path)
 
@@ -533,9 +532,10 @@ def upload_package(
         # Remove .tar suffix if present (for .tar.gz files)
         if name.endswith(".tar"):
             name = name[:-4]
-        # Use regex to find version pattern (digits and dots)
-        # Package name is everything before the version
-        match = re.match(r'^(.+?)-(\d+\.\d+.*?)(?:-|$)', name)
+        # Use regex to find version pattern
+        # PEP 440 versions can start with digits and include pre-release tags
+        # Examples: 1.0, 1.0.0, 1.0.0a1, 1.0.0rc1, 1.0.0.post1, 1.0.0.dev1
+        match = re.match(r'^(.+?)-(\d+(?:\.\d+)*(?:[a-zA-Z]+\d*)?(?:\.\w+)*)(?:-|$)', name)
         if match:
             package_name = match.group(1)
         else:
