@@ -150,13 +150,13 @@ if __name__ == "__main__":
         # Test token retrieval (will fail if not set)
         try:
             token = get_token("testpypi")
-            console.print(f"✅ [green]Test PyPI token found: {token[:10]}...[/green]")
+            console.print("✅ [green]Test PyPI token found (configured)[/green]")
         except ValueError:
             console.print("ℹ️ [blue]Test PyPI token not configured[/blue]")
 
         try:
             token = get_token("pypi")
-            console.print(f"✅ [green]PyPI token found: {token[:10]}...[/green]")
+            console.print("✅ [green]PyPI token found (configured)[/green]")
         except ValueError:
             console.print("ℹ️ [blue]PyPI token not configured[/blue]")
 
