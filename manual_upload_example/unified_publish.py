@@ -44,6 +44,8 @@ Author: KhaderX.com
 License: MIT
 """
 
+__version__ = "1.0.0"
+
 import os
 import sys
 import re
@@ -360,11 +362,13 @@ def resolve_attribute_version(package_path: Path, attr_path: str) -> Optional[st
     Args:
         package_path: Path to the package root
         attr_path: Attribute path like "mypackage.__version__" or "mypackage.version"
+                   Can also be in format "module:attribute" which will be normalized.
         
     Returns:
         Version string if found, None otherwise
     """
-    # Handle formats like: package.__version__:__version__ or package.__version__
+    # Handle pyproject.toml format: package.__version__:__version__ or package:__version__
+    # The colon separates module path from attribute name, normalize to dots for path resolution
     attr_path = attr_path.replace(":", ".")
     parts = attr_path.split(".")
     
@@ -518,14 +522,25 @@ def upload_package(
         print_error("No package files found in dist/")
         return False, None
     
-    # Extract package name from the first artifact
+    # Extract package name from the first artifact using regex
+    # Package names can contain hyphens, so we need to find the version pattern
+    # Wheels: package_name-version-py3-...-any.whl
+    # Tar.gz: package_name-version.tar.gz
     package_name = None
     if artifacts:
         artifact = artifacts[0]
         name = artifact.stem
-        # For wheels: package_name-version-... .whl
-        # For tar.gz: package_name-version.tar.gz
-        package_name = name.split("-")[0]
+        # Remove .tar suffix if present (for .tar.gz files)
+        if name.endswith(".tar"):
+            name = name[:-4]
+        # Use regex to find version pattern (digits and dots)
+        # Package name is everything before the version
+        match = re.match(r'^(.+?)-(\d+\.\d+.*?)(?:-|$)', name)
+        if match:
+            package_name = match.group(1)
+        else:
+            # Fallback: use first part before hyphen
+            package_name = name.split("-")[0]
     
     if dry_run:
         print_step("🔍", f"DRY RUN: Would upload to {repo_name}")
@@ -763,7 +778,7 @@ def main() -> int:
     args = parse_args()
     
     if args.version:
-        print("Unified Pure Python Publisher v1.0.0")
+        print(f"Unified Pure Python Publisher v{__version__}")
         return 0
     
     print_banner()
