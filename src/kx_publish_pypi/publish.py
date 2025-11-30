@@ -88,8 +88,9 @@ def upload_package(
             "__token__",
             "--password",
             token,
-            str(dist_dir / "*"),
         ]
+        # Add all package files (glob patterns don't expand in subprocess without shell=True)
+        cmd.extend(str(f) for f in package_files)
 
         result = subprocess.run(
             cmd, cwd=str(project_path), capture_output=True, text=True, check=True

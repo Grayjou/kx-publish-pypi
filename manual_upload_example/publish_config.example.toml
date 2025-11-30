@@ -1,0 +1,45 @@
+# Unified Publisher Configuration
+# Copy this file to publish_config.toml and customize for your project
+
+[publish]
+# Target repository: "test" for TestPyPI, "prod" for PyPI
+target = "test"
+
+# Whether to require confirmation before publishing
+confirm = true
+
+# Clean build artifacts (dist/, build/, *.egg-info) before building
+clean = true
+
+[package]
+# Path to the package root (where pyproject.toml is located)
+path = "."
+
+# Patterns to exclude from packaging (optional)
+# These are just informational - actual exclusions should be in pyproject.toml
+exclude = [
+    "tests",
+    "docs",
+    ".git",
+    "__pycache__",
+]
+
+[tokens]
+# SECURITY WARNING: It's recommended to use environment variables or system keyring
+# instead of storing tokens in config files. Only use these for local development.
+#
+# Priority order for token resolution:
+# 1. Environment variables: TESTPYPI_TOKEN or PYPI_TOKEN
+# 2. System keyring (via kx-publish-pypi setup-tokens)
+# 3. These config values (NOT RECOMMENDED for shared configs)
+#
+# To use environment variables:
+#   export TESTPYPI_TOKEN="pypi-xxxxx..."
+#   export PYPI_TOKEN="pypi-xxxxx..."
+#
+# To use system keyring:
+#   kx-publish-pypi setup-tokens
+#
+# Uncomment only for local development (NEVER commit tokens to version control):
+# test = "pypi-..."
+# prod = "pypi-..."
